@@ -6,6 +6,7 @@ from yahoo_fin.stock_info import get_data
 
 # functions are important
 def stocks2call(file='thursdays.csv') -> list:  # creates list of stock codes
+
     filepath='/home/ajw/Documents/VSstudio/ASX Scaper/raw data'
     codedf=pd.read_csv(filepath+'/'+file)   # newASXdata
     codedf.rename(columns={'stock': 'code'}, inplace=True)
@@ -107,7 +108,7 @@ def buysellflags(df, start_flag='15/01/2018', end_flag='15/02/2018'): # define f
     df['valuetraded']=df['price']*df['volume']
     print('Y')
     threshold=0.000011
-    dfbuy1=pd.DataFrame()
+    dfbuy=pd.DataFrame()
     dB=df[(df.BUY>threshold) & (df.valuetraded>1000000)]
     dS=df[(df.SELL>threshold) & (df.valuetraded>300000)]
     
@@ -223,21 +224,36 @@ def cleanup(dfbuy):
     return dfbuy
     #-------------------------------------------------------------
 #__________________________________________________
-def benchmark(stock='XJO', **kwargs):
-    load_data(stock, **kwargs)
+# def benchmark(stock='XAO', **kwargs):
+#     load_data(stock, **kwargs)
+#     pass
+    
+def startstopcheck(df,sdate='01/01/2018', edate='19/03/2021'):
+    priceatstart=df.loc['date'==sdate,'price']
+    priceatend=df.loc['date'==edate,'price']
+    
+    pass
 
-for asxcode in stocks2call():
-    data=load_data(asxcode, startdate='01/01/2018', enddate='19/10/2020')
-    avdata=algoAverages(data)
-    print(asxcode, '  averages done ', end=' ')
-    rocdata=algoRateofchange(avdata)
-    print('done ROC ', end=' ')
-    buysellflags(rocdata, start_flag='15/02/2018', end_flag='01/03/2018')
-    print(dfbuy, 'done cleanup ', end=' ')
-    cleanup(dfbuy)
-    print(' done flags ', end=' ')
-    print(dfbuy)
+
+#STOCKS FROM 2018 BOOK
+stocks=['ONT', 'ABC', 'AGL', 'ALQ', 'ALU', 'AMA', 'ANN', 'ARB', 'ALL', 'AUB', 'ANZ', 'BOQ', 'BPT', 'BHP', 'BKL', 'BLA', 'BRG', 'BTT', 'CTX', 'CAR', 'CWP', 'CCL', 'COH', 'CDA', 'CKF', 'CBA', 'CTD', 'CSR', 'DTL', 'DMP', 'DWS', 'EVT', 'EVN', 'FLT', 'FMG', 'GEM', 'GBT', 'GNG', 'GWA', 'HSN', 'HVN', 'IFM', 'IAG', 'IRI', 'IRE', 'JBH', 'LLC', 'MLD', 'MQG', 'MFG', 'MIN', 'MNF', 'MND', 'MNY', 'MOC', 'MYS', 'NAB', 'NHF', 'NCK', 'NST', 'OCL', 'ORI', 'PEA', 'PGC', 'PPT', 'PTM', 'PME', 'RCG', 'REA', 'REH', 'RFG', 'RIO', 'SEK', 'SRV', 'SIG', 'SRX', 'SHL', 'SXL', 'SDG', 'SUL', 'TGR', 'TNE', 'TPG', 'VTG', 'WEB', 'WLL', 'WES', 'WBC', 'WOW']
+
+stocks=['BHP']
+for stock in stocks:
+    load_data(stock, startdate='01/01/2018', enddate='19/03/2021')
+
+# for asxcode in stocks2call():
+#     data=load_data(asxcode, startdate='01/01/2018', enddate='19/10/2020')
+#     avdata=algoAverages(data)
+#     print(asxcode, '  averages done ', end=' ')
+#     rocdata=algoRateofchange(avdata)
+#     print(rocdata, 'done ROC ', end=' ')
+#     buysellflags(rocdata, start_flag='15/02/2018', end_flag='01/03/2018')
+#     print(dfbuy, 'done cleanup ', end=' ')
+#     cleanup(dfbuy)
+#     print(' done flags ', end=' ')
+#     print(dfbuy)
 #all_data = load_data()
 #filtered_data = filter_date(dt.date(2020, 1, 1), dt.date(2020, 3, 1), all_data)
-
+print(df)
 
