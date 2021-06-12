@@ -34,7 +34,7 @@ def load_data(stock, startdate='15/01/2018', enddate='19/10/2020') -> pd.DataFra
     df=df.rename(columns={'close':'price', 'ticker':'code'})
     df.sort_values(['date'], ascending=False, axis=0, inplace=True)
     df.drop_duplicates(subset=['date'], inplace=True)
-
+    print(df)
     return df
 
 def algoAverages(df):  # create averages
@@ -239,21 +239,25 @@ def startstopcheck(df,sdate='01/01/2018', edate='19/03/2021'):
 stocks=['ONT', 'ABC', 'AGL', 'ALQ', 'ALU', 'AMA', 'ANN', 'ARB', 'ALL', 'AUB', 'ANZ', 'BOQ', 'BPT', 'BHP', 'BKL', 'BLA', 'BRG', 'BTT', 'CTX', 'CAR', 'CWP', 'CCL', 'COH', 'CDA', 'CKF', 'CBA', 'CTD', 'CSR', 'DTL', 'DMP', 'DWS', 'EVT', 'EVN', 'FLT', 'FMG', 'GEM', 'GBT', 'GNG', 'GWA', 'HSN', 'HVN', 'IFM', 'IAG', 'IRI', 'IRE', 'JBH', 'LLC', 'MLD', 'MQG', 'MFG', 'MIN', 'MNF', 'MND', 'MNY', 'MOC', 'MYS', 'NAB', 'NHF', 'NCK', 'NST', 'OCL', 'ORI', 'PEA', 'PGC', 'PPT', 'PTM', 'PME', 'RCG', 'REA', 'REH', 'RFG', 'RIO', 'SEK', 'SRV', 'SIG', 'SRX', 'SHL', 'SXL', 'SDG', 'SUL', 'TGR', 'TNE', 'TPG', 'VTG', 'WEB', 'WLL', 'WES', 'WBC', 'WOW']
 
 stocks=['BHP']
-for stock in stocks:
-    load_data(stock, startdate='01/01/2018', enddate='19/03/2021')
+for asxcode in stocks:
+    # df=load_data(stock, startdate='01/01/2018', enddate='19/03/2021')
 
 # for asxcode in stocks2call():
-#     data=load_data(asxcode, startdate='01/01/2018', enddate='19/10/2020')
-#     avdata=algoAverages(data)
-#     print(asxcode, '  averages done ', end=' ')
-#     rocdata=algoRateofchange(avdata)
-#     print(rocdata, 'done ROC ', end=' ')
-#     buysellflags(rocdata, start_flag='15/02/2018', end_flag='01/03/2018')
-#     print(dfbuy, 'done cleanup ', end=' ')
-#     cleanup(dfbuy)
-#     print(' done flags ', end=' ')
-#     print(dfbuy)
-#all_data = load_data()
-#filtered_data = filter_date(dt.date(2020, 1, 1), dt.date(2020, 3, 1), all_data)
-print(df)
+    data=load_data(asxcode, startdate='01/01/2018', enddate='19/10/2020')
+    avdata=algoAverages(data)
+    print(asxcode, '  averages done ', end=' ')
+    rocdata=algoRateofchange(avdata)
+    print(rocdata, 'done ROC ', end=' ')
+    dfbuy=buysellflags(rocdata, start_flag='15/02/2018', end_flag='01/03/2018')
+    print(dfbuy, 'done cleanup ', end=' ')
+    cleanup(dfbuy)
+    print(' done flags ', end=' ')
+    print(dfbuy)
+# all_data = load_data()
+# filtered_data = filter_date(dt.date(2020, 1, 1), dt.date(2020, 3, 1), all_data)
+# print(df)
+# th is is the sunday test...
+#master
+# feature branch
+# master b
 
