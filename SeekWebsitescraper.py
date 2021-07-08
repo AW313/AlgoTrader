@@ -77,13 +77,15 @@ def SeekScrape_Mining():
         except:
             #pass first page through.. 
             pass
-        time.sleep(randint(100,200))
+        time.sleep(randint(20,30))
         
         for post in posts:
             no+=1
             title = post.find('h1').text
             co = post.find(class_='_3mgsa7- _15GBVuT _2Ryjovs').text[3:]
             postdate = post.find(class_='_2cFajGc').text
+            if 'more' in postdate:
+                break
             locale = post.find(class_='_7ZnNccT').text[9:]
             x = int(len(locale)/2)+1
             location = locale[:x]
@@ -106,14 +108,15 @@ def SeekScrape_Mining():
 
 def Tchanges(joblistings):
 
-    miningchanges={'eophys':'Geophysicist','exploration geologist':'Explorationist', 'eolog': 'Geologist', 
+    miningchanges={'eophys':'Geophysicist','exploration & geologist|geophys|geoscien':'Explorationist', 'eolog': 'Geologist', 
     'rill': 'Driller', 'eotech': 'Geotech', 'ass|tech': 'Assistant', 'anal': 'Analyst',
-    'operat':'Operations', 'mech|labour|constr|studen|survey':'Other'}
+    'operat':'Operations', 'mech|labour|constr|studen|survey':'Other', 'engin':'Engineer'}
 
 
     joblistings.reset_index(inplace=True)
     joblistings.drop(['count', 'index'], axis=1, inplace=True)
-    renamd(joblistings,'Job',miningchanges)
+    joblistings['Jobgroup']=joblistings['Job']
+    renamd(joblistings,'Jobgroup',miningchanges)
     joblistings.drop_duplicates(inplace=True)
     return joblistings
 
@@ -121,6 +124,7 @@ def Tchanges(joblistings):
 #   Scrape data from SEEk - mining and exploration into a table and generalise job titles
 joblistings = SeekScrape_Mining()
 joblistings = Tchanges(joblistings)
+joblistings.drop_duplicates(inplace=True)
 joblistings.to_csv('joblistings_Mining_Resource_Energy.csv')
 print('DONE')
 
