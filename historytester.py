@@ -103,7 +103,7 @@ def AlgoRateOfChange(df, volmultiple=4):  # define rate of change of the average
         c = i + 2
 
         try:
-            df.loc[i, "dvdtEWM"] = df.loc[c, "EWM"] - df.loc[i, "EWM"]
+            df.loc[i, "dvdtEWM"] = df.loc[i, "EWM"] - df.loc[c, "EWM"]
 
             if df.loc[i, "dvdtEWM"] > 0.00005:
                 df.loc[i, "flag"] = df["price"].mean()
@@ -204,6 +204,85 @@ def FutureDatePrice(df, date):
 
     return buyp, f3p, f6p, f9p, f12p
 
+def CurrentBuy_flag(df, dfbuy, asxcode, start_flag="", end_flag="", valuetraded=1000000):
+    
+    df["valuetraded"] = df["price"] * df["volume"]
+    dBd = pd.DataFrame()
+    dSd = pd.DataFrame()
+    threshold = 0.000011
+    df.set_index("date", inplace=True)
+
+    try:
+        dB = df[(df.BUY > threshold) & (df.valuetraded > valuetraded)]
+        dBd = dB.loc[end_flag:start_flag]
+    except:
+
+        pass
+
+    try:
+        dS = df[(df.SELL > threshold) & (df.valuetraded > valuetraded / 3)]
+        dSd = dS.loc[end_flag:start_flag]
+    except:
+        pass
+
+    if len(dBd) != 0:
+        for d in dBd.index:
+
+            print(".", end="")
+
+            # BB.append(stock)
+            # d=dt.datetime.strptime(d, "%Y-%m-%d")
+            d = str(d.strftime("%Y-%m-%d"))
+            dailyVols = df.loc[d, "volume"][0]
+            avVols = df.loc[d, "VOLSMA_100"][0]
+
+            flagdate = d
+
+            buyp = FutureDatePrice(df, d)
+            valtraded = buyp * dailyVols
+
+            dfbuy = dfbuy.append(
+                pd.DataFrame(
+                    {
+                        "stock": asxcode,
+                        "buy": "BUY",
+                        "flagdate": flagdate,
+                        "buyprice": [buyp],
+                        "avVOL": [avVols],
+                        "DailyVol": [dailyVols],
+                        "ValueTraded": [valtraded],
+                    }
+                ),
+                ignore_index=True,
+            )  #'profit%': prof,# '10daychange%': d10chan,
+
+    else:
+        pass
+
+    # if len(dSd)!=0:
+    #     for s in dSd.index:
+
+    #         # SS.append(stock)
+    #         for i in range(4,10):
+    #             try:
+    #                 selldaysafter=(s- timedelta(days=i)).strftime("%Y-%m-%d")
+
+    #                 Sellp=df.loc[selldaysafter, 'price']
+    #                 valtraded=df.loc[selldaysafter, 'valuetraded']
+    #                 # indexdate=df.loc[daysafter, 'date']
+    #                 print(Sellp)
+
+    #                 break
+    #             except:
+    #                 pass
+
+    #         dfbuy=dfbuy.append(pd.DataFrame({'stock':asxcode, 'buy':'SELL', 'date': s , 'buyprice': Sellp ,
+    #         'currentprice': 0, 'profit%': 0, '10daychange%':d10chan}), ignore_index=True)
+
+    # else:
+    #     pass
+
+    return dfbuy
 
 def HistoricBuyFlagToDF(df, dfbuy, asxcode, start_flag="", end_flag="", valuetraded=1000000):  # define flags and create new df of flagged info
 
@@ -300,24 +379,25 @@ def CleanupPercentages(dfbuy):
     # -------------------------------------------------------------
 
 
-def BenchmarkASX(dfbuy, starting_flag, sdate, edate, stock="%5EAXJO"):
-    benchmark_data = LoadYahooFinanceData(stock, sdate, edate)
-    buyp, f3p, f6p, f9p, f12p = FutureDatePrice(benchmark_data, starting_flag)
+def BenchmarkASX(dfbuy, starting_flag, sdate, edate, stocks=["%5EAXJO",'VTS']):
+    for stock in stocks:
+        benchmark_data = LoadYahooFinanceData(stock, sdate, edate)
+        buyp, f3p, f6p, f9p, f12p = FutureDatePrice(benchmark_data, starting_flag)
 
-    dfbuy = dfbuy.append(
-        pd.DataFrame(
-            {
-                "stock": "Benchmark",
-                "flagdate": starting_flag,
-                "buyprice": [buyp],
-                "3month$": [f3p],
-                "6month$": [f6p],
-                "9month$": [f9p],
-                "12month$": [f12p],
-            }
-        ),
-        ignore_index=True,
-    )
+        dfbuy = dfbuy.append(
+            pd.DataFrame(
+                {
+                    "stock": "Benchmark",
+                    "flagdate": starting_flag,
+                    "buyprice": [buyp],
+                    "3month$": [f3p],
+                    "6month$": [f6p],
+                    "9month$": [f9p],
+                    "12month$": [f12p],
+                }
+            ),
+            ignore_index=True,
+        )
     return dfbuy
 
 
@@ -333,50 +413,8 @@ def LoadDateRange(starting_flag="2020-05-01", ending_flag="2020-08-01"):
 
     return sdate, edate
 
-
-# -----------------------------------------------#
-# #CHOOSE  DATE RANGE TO INVESTIGATE + FLAG LIMITS
-
-starting_flag = "2015-02-01"
-ending_flag = "2015-05-01"
-volmultiple = 7
-valuetraded = 10000000
-benchmark_stock = "%5EAXJO"
-# -----------------------------------------------#
-#  LOAD DATA AND RANGE FROM CSV..
-
-filepath = "/home/ajw/Documents/VSstudio/ASX Scaper/Stockscrappy2/ASX_Listed_Companies_22-06-2021_02-13-18_AEST.csv"
-# df=HistoricalCsvLoad(filepath)
-sdate, edate = LoadDateRange(starting_flag, ending_flag)
-dfbuy = pd.DataFrame()
-
-stocks = ["AMI", "MWY", "CLW"]
-
-# ----------------------------------------------#
-#  RUN SCRIPT
-# for code in Stocks2Call():
-for code in stocks:
-    print(code, end=" ")
-
-    df_historic = LoadYahooFinanceData(code, sdate, edate)
-    # df_historic=HistoricalCallByDate(code, df, sdate, edate)
-
-    if len(df_historic) != 0:
-        df_HistoricAverages = AlgoAverages(df_historic)
-        df_ROC_flags = AlgoRateOfChange(df_HistoricAverages, volmultiple)
-        dfbuy = HistoricBuyFlagToDF(
-            df_ROC_flags, dfbuy, code, starting_flag, ending_flag, valuetraded
-        )
-
-    else:
-        print("^", end="")
-        pass
-
-dfbuy = BenchmarkASX(dfbuy, starting_flag, sdate, edate, benchmark_stock)
-dfbuy = CleanupPercentages(dfbuy)
-dfbuy.drop_duplicates("stock", inplace=True)
-print("\n\n\n\n", dfbuy)
-
-
-# print(dfbuy.describe())
-dfbuy.to_csv("testerJuly.csv", sep=",")
+def stocklists():
+    
+    topstocks2019=[]
+    topstocks2021=[]
+    pass
