@@ -1,8 +1,10 @@
 import requests
 from bs4 import BeautifulSoup
 import time
-import pandas as pd
 from random import randint
+from time import sleep
+import pandas as pd
+
 import math
 import datetime as dt
 from datetime import timedelta
@@ -48,8 +50,8 @@ def renamd(df, column, dict):
     return df
 
 def SeekScrape_Mining():
-    joblistings = pd.read_csv('joblistings_Mining_Resource_Energy.csv')
-    # joblistings = pd.DataFrame()
+    # joblistings = pd.read_csv('joblistings_Mining_Resource_Energy.csv')
+    joblistings = pd.DataFrame()
     no = 0
 
     # load up first page
@@ -74,10 +76,11 @@ def SeekScrape_Mining():
             content = site.content
             soup = BeautifulSoup(content, 'html.parser')
             posts = soup.find(class_='_1UfdD4q')
+            
         except:
             #pass first page through.. 
             pass
-        time.sleep(randint(20,30))
+        time.sleep(randint(8,20))
         
         for post in posts:
             no+=1
@@ -89,6 +92,7 @@ def SeekScrape_Mining():
             locale = post.find(class_='_7ZnNccT').text[9:]
             x = int(len(locale)/2)+1
             location = locale[:x]
+            description = post.find(class_='_2OKR1ql').text
             
             time.sleep(randint(5,13))
             if postdate != 'This is a featured job':
@@ -100,6 +104,7 @@ def SeekScrape_Mining():
                                 "Job": [title],
                                 "Date": timeconvert(postdate),
                                 "Location": [location],
+                                'Description': [description]
                             }
                         ))
             else:
@@ -124,8 +129,17 @@ def Tchanges(joblistings):
 #   Scrape data from SEEk - mining and exploration into a table and generalise job titles
 joblistings = SeekScrape_Mining()
 joblistings = Tchanges(joblistings)
-joblistings.drop_duplicates(inplace=True)
-joblistings.to_csv('joblistings_Mining_Resource_Energy.csv')
+try:
+    joblistings.drop(['Unnamed: 0'], axis=1, inplace=True)
+except:
+    pass
+
+joblistings.Date = pd.to_datetime(joblistings.Date)
+joblistings["Quarter"] = joblistings.Date.dt.quarter
+
+joblistings.drop_duplicates(['Company', 'Job', 'Location', 'Description', 'Quarter'], inplace=True)
+joblistings['count'] = 1
+joblistings.to_csv('joblistings_Mining_Resource_Energy2.csv')
 print('DONE')
 
 # further work 
