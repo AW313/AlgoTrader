@@ -4,17 +4,18 @@ import numpy as np
 import datetime as dt
 from datetime import date, timedelta
 from pandas.io.pytables import incompatibility_doc
-from yahoo_fin.stock_info import get_data
+# from yahoo_fin.stock_info import get_data
+import yfinance as yf
 
-# import warnings
-# warnings.simplefilter(action='ignore')
+import warnings
+warnings.simplefilter(action='ignore')
 pd.set_option("display.max_rows", 280)
 pd.set_option("display.max_columns", 25)
 pd.set_option("display.width", 1000)
 pd.options.display.float_format = "{:,.2f}".format
 
 
-def Stocks2Call(file="ASX_Listed_Companies_22-06-2021_02-13-18_AEST.csv") -> list:  # creates list of stock codes
+def Stocks2Call(file="ASX_Listed_Companies_03-09-2021_12-35-14_AEST.csv") -> list:  # creates list of stock codes
     filepath = "/home/ajw/Documents/VSstudio/ASX Scaper/Stockscrappy2/"
     # filepath='/home/ajw/Documents/VSstudio/ASX Scaper/raw data'
     codedf = pd.read_csv(filepath + file)  # newASXdata
@@ -27,9 +28,32 @@ def Stocks2Call(file="ASX_Listed_Companies_22-06-2021_02-13-18_AEST.csv") -> lis
     return stocks
 
 
+def LoadYFinanceData(stock, startdate="15/01/2018", enddate="19/10/2020"):
+    df = pd.DataFrame()
+    # stocks=['VGB', 'LYL', 'SKC', 'PME']
+    if stock != "%5EAXJO":
+        stock += ".AX"
+    try:
+        msft = yf.Ticker(stock)
+        df = msft.history(start=startdate, end=enddate)
+        # df["date"] = pd.to_datetime(df["date"], format="%Y %m %d")
+        df = df.rename(columns={"Close": "price", 'Volume':'volume'})
+        # df.sort_values(["date"], ascending=False, axis=0, inplace=True)
+        # df.drop_duplicates(subset=["date"], inplace=True)
+        df.sort_index(ascending=False, inplace=True)
+        
+        return df
+
+    except:  # stock doesnt exsist in the Yahoo API.
+        print("_f", end="")
+        return df
+
+
 def LoadYahooFinanceData(stock, startdate="15/01/2018", enddate="19/10/2020") -> pd.DataFrame:  # choose data extent to load from yahoofin. API
     # read from csv or internet
+    #   DEPRECATEDD  D D D D 
     df = pd.DataFrame()
+    print(stock, '_1')
     # stocks=['VGB', 'LYL', 'SKC', 'PME']
     if stock != "%5EAXJO":
         stock += ".AX"
@@ -47,7 +71,6 @@ def LoadYahooFinanceData(stock, startdate="15/01/2018", enddate="19/10/2020") ->
                 yf_data["ticker"] = c[:3]
 
         df = df.append(pd.DataFrame(yf_data[["close", "date", "volume", "ticker"]]))
-
         df["date"] = pd.to_datetime(df["date"], format="%Y %m %d")
         df = df.rename(columns={"close": "price", "ticker": "code"})
         df.sort_values(["date"], ascending=False, axis=0, inplace=True)
@@ -95,33 +118,33 @@ def AlgoAverages(df):  # create averages
 
 
 def AlgoRateOfChange(df, volmultiple=4):  # define rate of change of the averages and set a value to the base flags
-
+    
     df.reset_index(inplace=True)
-
     for i in df.index:
         b = i + 1
         c = i + 2
-
         try:
             df.loc[i, "dvdtEWM"] = df.loc[i, "EWM"] - df.loc[c, "EWM"]
 
             if df.loc[i, "dvdtEWM"] > 0.00005:
-                df.loc[i, "flag"] = df["price"].mean()
+                df.loc[i, "flag"] = df["price"].mean()/3
             else:
                 df.loc[i, "flag"] = 0
 
             if df.loc[i, "dvdtEWM"] < 0 and (
                 df.loc[i, "VOLSMA_100"] * volmultiple <= df.loc[i, "volume"]
             ):  # changed this
-                df.loc[i, "SELL"] = df["price"].max() * 0.9
+                df.loc[i, "SELL"] = df.loc[i,"price"].max() * 0.9
             else:
                 df.loc[i, "SELL"] = 0
 
-            if (
-                df.loc[i, "VOLSMA_100"] * volmultiple <= df.loc[i, "volume"]
-                and df.loc[i, "flag"] > 0
-            ):
-                df.loc[i, "BUY"] = df["volume"].max()
+            if (df.loc[i, "VOLSMA_100"] * volmultiple <= df.loc[i, "volume"] and df.loc[i, "flag"] > 0):
+                df.loc[i, "BUY"] = df.loc[i, "volume"]
+                try:
+                    df.loc[i, 'VolX'] = df.loc[i, "volume"] / df.loc[i, "VOLSMA_100"]
+                except:
+                    df.loc[i, 'VolX'] = 0
+               
             else:
                 df.loc[i, "BUY"] = 0
 
@@ -205,18 +228,19 @@ def FutureDatePrice(df, date):
     return buyp, f3p, f6p, f9p, f12p
 
 def CurrentBuy_flag(df, dfbuy, asxcode, start_flag="", end_flag="", valuetraded=1000000):
-    
+    buy=0
+    buyp=np.nan
     df["valuetraded"] = df["price"] * df["volume"]
     dBd = pd.DataFrame()
     dSd = pd.DataFrame()
     threshold = 0.000011
-    df.set_index("date", inplace=True)
+    df.set_index("Date", inplace=True)
 
     try:
         dB = df[(df.BUY > threshold) & (df.valuetraded > valuetraded)]
         dBd = dB.loc[end_flag:start_flag]
+        
     except:
-
         pass
 
     try:
@@ -224,7 +248,6 @@ def CurrentBuy_flag(df, dfbuy, asxcode, start_flag="", end_flag="", valuetraded=
         dSd = dS.loc[end_flag:start_flag]
     except:
         pass
-
     if len(dBd) != 0:
         for d in dBd.index:
 
@@ -237,8 +260,8 @@ def CurrentBuy_flag(df, dfbuy, asxcode, start_flag="", end_flag="", valuetraded=
             avVols = df.loc[d, "VOLSMA_100"][0]
 
             flagdate = d
-
-            buyp = FutureDatePrice(df, d)
+            buy = 1
+            buyp, a,b,c,e = FutureDatePrice(df, d)
             valtraded = buyp * dailyVols
 
             dfbuy = dfbuy.append(
@@ -257,6 +280,7 @@ def CurrentBuy_flag(df, dfbuy, asxcode, start_flag="", end_flag="", valuetraded=
             )  #'profit%': prof,# '10daychange%': d10chan,
 
     else:
+        flagdate = start_flag
         pass
 
     # if len(dSd)!=0:
@@ -282,16 +306,16 @@ def CurrentBuy_flag(df, dfbuy, asxcode, start_flag="", end_flag="", valuetraded=
     # else:
     #     pass
 
-    return dfbuy
+    return flagdate, buy,  dfbuy, buyp
 
 def HistoricBuyFlagToDF(df, dfbuy, asxcode, start_flag="", end_flag="", valuetraded=1000000):  # define flags and create new df of flagged info
-
+    buy = 0
     df["valuetraded"] = df["price"] * df["volume"]
     dBd = pd.DataFrame()
     dSd = pd.DataFrame()
     threshold = 0.000011
-    df.set_index("date", inplace=True)
-
+    # df.set_index("date", inplace=True)
+    df.to_csv('wtf.csv')
     try:
         dB = df[(df.BUY > threshold) & (df.valuetraded > valuetraded)]
         dBd = dB.loc[end_flag:start_flag]
@@ -304,10 +328,10 @@ def HistoricBuyFlagToDF(df, dfbuy, asxcode, start_flag="", end_flag="", valuetra
         dSd = dS.loc[end_flag:start_flag]
     except:
         pass
-
+    
     if len(dBd) != 0:
         for d in dBd.index:
-
+            buy = 1
             print(".", end="")
 
             # BB.append(stock)
@@ -319,6 +343,7 @@ def HistoricBuyFlagToDF(df, dfbuy, asxcode, start_flag="", end_flag="", valuetra
             flagdate = d
 
             buyp, f3p, f6p, f9p, f12p = FutureDatePrice(df, d)
+           
             valtraded = buyp * dailyVols
 
             dfbuy = dfbuy.append(
@@ -366,7 +391,7 @@ def HistoricBuyFlagToDF(df, dfbuy, asxcode, start_flag="", end_flag="", valuetra
     # else:
     #     pass
 
-    return dfbuy
+    return buy, dfbuy
 
 
 def CleanupPercentages(dfbuy):
@@ -418,3 +443,10 @@ def stocklists():
     topstocks2019=[]
     topstocks2021=[]
     pass
+
+def tempclean():
+    import os
+    import glob
+    files = glob.glob('/home/ajw/Documents/VSstudio/ASX Scaper/Stockscrappy2/temp/*')
+    for f in files:
+        os.remove(f)

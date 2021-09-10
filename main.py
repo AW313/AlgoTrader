@@ -2,12 +2,13 @@
 from historytester import LoadYFinanceData, Stocks2Call, AlgoAverages, AlgoRateOfChange, tempclean, LoadDateRange, CurrentBuy_flag
 from makemypdf import *
 from datetime import date
+import yfinance as yf
 
 # -----------------------------------------------#
 # #CHOOSE  DATE RANGE TO INVESTIGATE + FLAG LIMITS
 
-starting_flag = "2021-07-04"
-ending_flag = "2021-07-18"
+starting_flag = "2021-08-01"
+ending_flag = "2021-08-31"
 volmultiple = 5
 valuetraded = 2000000
 benchmark_stock = "%5EAXJO"
@@ -23,14 +24,14 @@ def stocklists():
     stocks = ['']
     stocks = ['ADI', 'ADO', 'AIS', 'BBN', 'BKT', 'BLD', 'BSA', 'BWX', 'CAP', 'CDA', 'DEG', 'EGH',
      'EL8', 'GNM', 'GRV', 'HLX', 'IDX', 'IVR', 'JHC', 'LCD', 'MIN', 'NXS', 'ONX', 'ORN', 'TLM']  #AW 'ACL', 
-    # # stocks=['ORN', 'EL8']
-    # stocks = ['360', 'AIA', 'API', 'AD8', 'AXE', 'AZY', 'BIN', 'CAA', 'CAJ', 'CCZ', 'CNI', 'CRO',
-    #  'EGR', 'FWD', 'ICQ', 'LRK', 'MAQ', 'MCT', 'MYR', 'NTO', 'PPH', 'RFG', 'SKI', 'SNL' ,'SWM', 'VTG', 'VVA', 'WGO'] 
-    stocks =['LSF', 'LCL', 'FEX', 'HTG', 'SCL', 'VG8', 'TRM', 'LIT']
-    stocks = ['STX', 'BPT', 'BRU', 'SXY', 'CVN', 'COE', 'WPL', 'MIN']
-    stocks=['MEL', 'VG8', 'CDM', 'MTM', 'LSF', 'STX', 'CSR', 'R3D', 'FEX']
-    stocks = ['CSR']
-    # stocks=['BPT']
+    
+    # stocks=['MEL', 'VG8', 'CDM', 'MTM', 'LSF', 'STX', 'CSR', 'R3D', 'FEX']
+    # stocks = ['MIN', 'BPT', 'RIO', 'MAH', 'CIM']
+    # stocks = ['FEL', 'SFR', 'SVY', 'SLZ', 'SKY', 'RIO', 'MIN'] #coppAer
+    # stocks = ['RAC', 'AZS', 'FAU', 'EX1', 'NYR', 'FEL']
+
+    stocks=['AVA', 'AXP', 'HCH', 'IEQ']
+    # stocks=['88E', 'BTC-AUD']
 
     return stocks
 # ----------------------------------------------#
@@ -90,19 +91,18 @@ def currentdayrun(dfbuy):
             pass
 
         buy=1  #  RUN THEM ALL
-        if buy == True:
+        if buy == True:# and yf.Ticker(code).info['marketCap'] is not None:
             buyl+=code+', '
-
-            # df_ROC_flags.set_index('Date', inplace=True)
-            # create_figsheet(df_ROC_flags, code, dated, pdf)
-            # df_ROC_flags.to_csv('dfrocs.csv')
             create_body_stock_report(df_ROC_flags, code, dated, pdf, buyp, starting_flag, ending_flag)
+        else:
+            print('', end='')
+            pass
     
 
     dfbuy.drop_duplicates("stock", inplace=True)
     print("\n\n\n\n", dfbuy)
 
-    print(buyl)
+    print('buylist is  \n', buyl)
     save_df_as_image(dfbuy)
     pdf.add_page()
     pdf.write(25, 'BUY Overview \n\n')
@@ -110,7 +110,7 @@ def currentdayrun(dfbuy):
     lastpage(pdf)
 
     tday = str(date.today())
-    pdf.output('BUYLISTOPInsiders.pdf', 'F')
+    pdf.output('JTs.pdf', 'F')
     # pdf.output('BUYLIST'+tday+'.pdf', 'F')    
     # dfbuy.to_csv('BUYRUN'+tday+'.csv', sep=",")
     

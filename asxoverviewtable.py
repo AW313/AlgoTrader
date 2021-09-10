@@ -22,15 +22,28 @@ def stockfacts(code='MIN.AX'):
     msft = yf.Ticker(code)
     info = msft.info
 
-    mc = info['marketCap']
-    tr = info['totalRevenue']
-    rg = info['revenueGrowth']
-    oc = info['operatingCashflow']
+    try:
+        mc = info['marketCap']
+    except KeyError:
+        mc=np.nan
+    try:
+        tr = info['totalRevenue']
+    except:
+        tr=np.nan
+    
+    try:
+        rg = info['revenueGrowth']
+    except:
+        rg=np.nan
+    try:
+        oc = info['operatingCashflow']
+    except:
+        oc=np.nan
     try:
         pi = info['heldPercentInstitutions']*100
         if not pi:
             pi=np.nan
-    except TypeError:
+    except:
         pi = np.nan
     try:
         eq = info['earningsQuarterlyGrowth']
@@ -79,19 +92,40 @@ def stockfacts(code='MIN.AX'):
             io=np.nan
     except:
         io = np.nan
-    dy = info['dividendYield']
-    so = info['sharesOutstanding']
-    mp = info['regularMarketPrice']
-    sx = info['sector']
-    ev = info['enterpriseValue']
-    eb = info['ebitda']
-    teps = info['trailingEps']
+    try:
+        dy = info['dividendYield']
+    except:
+        dy=np.nan
+    try:
+        so = info['sharesOutstanding']
+    except:
+        so=np.nan
+    try:
+        mp = info['regularMarketPrice']
+    except:
+        mp=np.nan
+    try:
+        sx = info['sector']
+    except:
+        sx=np.nan
+    try:
+        ev = info['enterpriseValue']
+    except:
+        ev=np.nan
+    try:
+        eb = info['ebitda']
+    except:
+        eb=np.nan
+    try:
+        teps = info['trailingEps']
+    except:
+        teps=np.nan
     
     try:
         feps = info['forwardEps']
         if not feps:
             feps=np.nan
-    except TypeError:
+    except:
         feps = np.nan
     try:
         evb = ev/eb  # Calc Enterprise value / EBITDA
@@ -222,19 +256,21 @@ def johansle(stocks):
     return JHstocks
 
 def stock_insider(stock='LRK'):
-    try:
-        url ='https://www.marketbeat.com/stocks/ASX/'+str(stock)+'/insider-trades/'
-        page = requests.get(url)
-        content = page.content
-        soup = BeautifulSoup(content, 'html.parser')
-        tb = soup.find_all('tr')
-        time.sleep(randint(1,3))
-        # tb is all the rows in the insider buyers table. the first two are total buy / sell. then the last n amount are individaul purchases and date of purchase
-        inside_Tot_buyers = int(tb[0].text.split('$')[-1].split('.')[0].replace(',',''))
-        inside_Tot_sellers = int(tb[1].text.split('$')[-1].split('.')[0].replace(',',''))
-    except:
-        inside_Tot_buyers=np.nan
-        inside_Tot_sellers=np.nan
+    inside_Tot_buyers = -999
+    inside_Tot_sellers = -999
+    # try:
+    #     url ='https://www.marketbeat.com/stocks/ASX/'+str(stock)+'/insider-trades/'
+    #     page = requests.get(url)
+    #     content = page.content
+    #     soup = BeautifulSoup(content, 'html.parser')
+    #     tb = soup.find_all('tr')
+    #     time.sleep(randint(1,3))
+    #     # tb is all the rows in the insider buyers table. the first two are total buy / sell. then the last n amount are individaul purchases and date of purchase
+    #     inside_Tot_buyers = int(tb[0].text.split('$')[-1].split('.')[0].replace(',',''))
+    #     inside_Tot_sellers = int(tb[1].text.split('$')[-1].split('.')[0].replace(',',''))
+    # except:
+    #     inside_Tot_buyers=np.nan
+    #     inside_Tot_sellers=np.nan
         
     return inside_Tot_buyers, inside_Tot_sellers
 #----------------------------

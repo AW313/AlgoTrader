@@ -17,6 +17,7 @@ from bs4 import BeautifulSoup
 from asxoverviewtable import stockfacts, numby
 pd.options.display.float_format = "{:,.2f}".format
 plt.rcParams.update({'figure.max_open_warning': 0})
+from scrape_directors import stock_buyers
 
 WIDTH = 210
 HEIGHT = 297
@@ -319,8 +320,8 @@ def create_figsheet(df, stock, dated, pdf):
         pass
 
 def create_body_stock_report(df, stock, dated, pdf, buyp, starting_flag, ending_flag):
-
-    inside_Tot_buyers, inside_Tot_sellers, buyerslist, sellerslist, url = stock_buyers(stock, starting_flag, ending_flag)
+    dead=0
+    dirlist, url = stock_buyers(stock, starting_flag, ending_flag)
 
     dd = datetime.strptime(dated, '%Y-%m-%d')
     if stock != "%5EAXJO":
@@ -332,10 +333,11 @@ def create_body_stock_report(df, stock, dated, pdf, buyp, starting_flag, ending_
             time.sleep(randint(1,3))
             spobv, ebm, fpe, feps, fepss, tepss, teps, Eqs, cEQv, cEntv, po, isv, evb, eb, ev, sx, mc, tr, rg, oc, pi, eq, tpe, tc, bv, td, io, dy, so, mp = stockfacts(stock)
         except:
-            print(stock, ' timed out..')
+            print(stock, ' timed out..', end='')
             time.sleep(randint(20,50))
             spobv, ebm, fpe, feps, fepss, tepss, teps, Eqs, cEQv, cEntv, po, isv, evb, eb, ev, sx, mc, tr, rg, oc, pi, eq, tpe, tc, bv, td, io, dy, so, mp = stockfacts(stock)
         
+            
         try:
             
             valt = df.loc[dated, 'valuetraded']
@@ -350,91 +352,94 @@ def create_body_stock_report(df, stock, dated, pdf, buyp, starting_flag, ending_
             buyp=0
             valt=[0.0]
             volx=[0,0]
-
-        txt = unikode(sd['longBusinessSummary'])
-
-        k_eb, k_by, k_sl, k_bv, k_io, k_so = kolor(eb=ebm, by=inside_Tot_buyers, sl=inside_Tot_sellers, sbv=spobv, kio=io, so=so)
+        try:
+            txt = unikode(sd['longBusinessSummary'])
         
+            k_eb, k_by, k_sl, k_bv, k_io, k_so = kolor(eb=ebm, sbv=spobv, kio=io, so=so)
+            
 
-        #---------------------------PAGE SETUP------------------------
-        pdf.add_page()
-        pdf.set_font('Courier', 'B')
-        pdf.set_font_size(12)
-        pdf.write(8, f"{stock[:3]} - {sd['longName']} \n")
+            #---------------------------PAGE SETUP------------------------
+            
+            pdf.add_page()
+            pdf.set_font('Courier', 'B')
+            pdf.set_font_size(12)
+            pdf.write(8, f"{stock[:3]} - {sd['longName']} \n")
 
-        pdf.set_font('Courier')
-        pdf.set_font_size(10)
-        pdf.write(6, f"Operates in {unikode(sd['sector'])}, {unikode(sd['industry'])}.     Flag date {dd.strftime('%d of %B, %Y')}")
-        pdf.ln(8)
-        pdf.set_font('Courier')
-        pdf.set_font_size(8)
-        pdf.write(5, f"""BIO:  {txt[:480]}
-                     ----------------------------------------------------------------\n""")
-        
-        pdf.cell(0,0,'SHEET INFO $MM')
-        pdf.link(50, 80, 30, 8, "https://github.com/PyFPDF/fpdf2")
-        pdf.ln(3)
+            pdf.set_font('Courier')
+            pdf.set_font_size(10)
+            pdf.write(6, f"Operates in {unikode(sd['sector'])}, {unikode(sd['industry'])}.     Flag date {dd.strftime('%d of %B, %Y')}")
+            pdf.ln(8)
+            pdf.set_font('Courier')
+            pdf.set_font_size(8)
+            pdf.write(5, f"""BIO:  {txt[:480]}
+                        ----------------------------------------------------------------\n""")
+            
+            pdf.cell(0,0,'SHEET INFO $MM')
+            pdf.link(50, 80, 30, 8, "https://github.com/PyFPDF/fpdf2")
+            pdf.ln(3)
 
-        pdf.cell(50,8, f'Market Cap ${numby(mc)}',  align='L')
-        pdf.cell(50,8, f'Current Share Price ${round(mp, ndigits=3)}',  align='R')
-        pdf.cell(50,8, f'Under {round(po, ndigits=3)}%', align='R')
+            pdf.cell(50,8, f'Market Cap ${numby(mc)}',  align='L')
+            pdf.cell(50,8, f'Current Share Price ${round(mp, ndigits=3)}',  align='R')
+            pdf.cell(50,8, f'Under {round(po, ndigits=3)}%', align='R')
 
-        pdf.ln(8)
-        pdf.cell(50,8, f'Total Revenue ${numby(tr)}',  align='L')
-        pdf.cell(50,8, f'CALC Intrinsic ShareValue ${round(isv, ndigits=3)}',align='R')
-        pdf.set_fill_color(k_bv[0], k_bv[1], k_bv[2])
-        pdf.cell(50,8, f'Book Value ${round(spobv, ndigits=3)}',  align='R', fill=True)
+            pdf.ln(8)
+            pdf.cell(50,8, f'Total Revenue ${numby(tr)}',  align='L')
+            pdf.cell(50,8, f'CALC Intrinsic ShareValue ${round(isv, ndigits=3)}',align='R')
+            pdf.set_fill_color(k_bv[0], k_bv[1], k_bv[2])
+            pdf.cell(50,8, f'Book Value ${round(spobv, ndigits=3)}',  align='R', fill=True)
 
-        pdf.ln(8)
-        pdf.cell(50,8, f'Total Cash ${numby(tc)}',  align='L')
-        pdf.cell(50,8, f'CALC Enterprise Value ${numby(cEntv)}',  align='R')
-        pdf.cell(50,8, f'T_PE {round(tpe, ndigits=3)} F_PE {round(fpe, ndigits=3)}',  align='R')
+            pdf.ln(8)
+            pdf.cell(50,8, f'Total Cash ${numby(tc)}',  align='L')
+            pdf.cell(50,8, f'CALC Enterprise Value ${numby(cEntv)}',  align='R')
+            pdf.cell(50,8, f'T_PE {round(tpe, ndigits=3)} F_PE {round(fpe, ndigits=3)}',  align='R')
 
-        pdf.ln(8)
-        pdf.cell(50,8, f'Total Debt ${numby(td)}', align='L')
-        pdf.cell(50,8, f'CALC Equity Value ${numby(cEQv)}',  align='R')
-        pdf.cell(50,8, f'T_EPS {teps}, F_EPS {feps}',  align='R')
+            pdf.ln(8)
+            pdf.cell(50,8, f'Total Debt ${numby(td)}', align='L')
+            pdf.cell(50,8, f'CALC Equity Value ${numby(cEQv)}',  align='R')
+            pdf.cell(50,8, f'T_EPS {teps}, F_EPS {feps}',  align='R')
 
-        pdf.ln(8)
-        pdf.cell(50,8, f'Operating Cashflow ${numby(oc)}', align='L')
-        pdf.cell(50,8, f'CALC Equity Shares ${round(Eqs, ndigits=3)}',  align='R')
-        pdf.cell(50,8, f'FLAGGED',  border = 'B', align='R')
+            pdf.ln(8)
+            pdf.cell(50,8, f'Operating Cashflow ${numby(oc)}', align='L')
+            pdf.cell(50,8, f'CALC Equity Shares ${round(Eqs, ndigits=3)}',  align='R')
+            pdf.cell(50,8, f'FLAGGED',  border = 'B', align='R')
 
-        pdf.ln(8)
-        pdf.cell(50,8, f'Enterprise Value ${numby(ev)}', align='L')
-        pdf.set_fill_color(k_io[0], k_io[1], k_io[2])
-        pdf.cell(50,8, f'Insiders Own % {round(io, ndigits=2)}',  align='R', fill=True)
-        pdf.cell(50,8, f' BUY Date {dated}',  align='R')
-        
-        pdf.ln(8)
-        pdf.set_fill_color(k_eb[0], k_eb[1], k_eb[2])
-        pdf.cell(50,8, f'EBITDA Margin {round(ebm, ndigits=3)}%', align='L', fill=True)
-        pdf.cell(50,8, f'Institutions Own {round(pi, ndigits=2)}%',  align='R')
-        pdf.cell(50,8, f' BUY price $ {round(buyp, ndigits=2)}',  align='R')
+            pdf.ln(8)
+            pdf.cell(50,8, f'Enterprise Value ${numby(ev)}', align='L')
+            pdf.set_fill_color(k_io[0], k_io[1], k_io[2])
+            pdf.cell(50,8, f'Insiders Own % {round(io, ndigits=2)}',  align='R', fill=True)
+            pdf.cell(50,8, f' BUY Date {dated}',  align='R')
+            
+            pdf.ln(8)
+            pdf.set_fill_color(k_eb[0], k_eb[1], k_eb[2])
+            pdf.cell(50,8, f'EBITDA Margin {round(ebm, ndigits=3)}%', align='L', fill=True)
+            pdf.cell(50,8, f'Institutions Own {round(pi, ndigits=2)}%',  align='R')
+            pdf.cell(50,8, f' BUY price $ {round(buyp, ndigits=2)}',  align='R')
 
-        pdf.ln(8)  
-        pdf.set_fill_color(k_so[0], k_so[1], k_so[2])
-        pdf.cell(50,8, f'Shares On Offer {so}', align='L', fill=True)
-        pdf.cell(50,8, f'', align='R')
-        pdf.cell(50,8, f' Volume Over Av. {round(volx[0], ndigits=1)} Xs', align='R')
+            pdf.ln(8)  
+            pdf.set_fill_color(k_so[0], k_so[1], k_so[2])
+            pdf.cell(50,8, f'Shares On Offer {so}', align='L', fill=True)
+            pdf.cell(50,8, f'', align='R')
+            pdf.cell(50,8, f' Volume Over Av. {round(volx[0], ndigits=1)} Xs', align='R')
 
-        pdf.ln(8)
-        pdf.set_fill_color(k_by[0], k_by[1], k_by[2])
-        pdf.cell(50,8, f'Insider buyers ${inside_Tot_buyers}', align='L', border = 'T', fill=True)
-        pdf.set_fill_color(k_sl[0], k_sl[1], k_sl[2])
-        pdf.cell(50,8, f'Insider Sellers ${inside_Tot_sellers}', align='C', border = 'T', fill=True)
-        
-        # pdf.set_fill_color(160, 255, 0)
-        pdf.cell(50,8, f' Value Traded $MM {numby(valt[0])}', align='R')
-        
-        pdf.ln(8)
-        pdf.cell(150,8, f'BUYS {buyerslist}', align='L')
-        pdf.ln(8)
-        pdf.cell(150,8, f'SELLS {sellerslist}', align='L')
+            pdf.ln(8)
+            # pdf.set_fill_color(k_by[0], k_by[1], k_by[2])
+            # pdf.cell(50,8, f'Insider buyers ${inside_Tot_buyers}', align='L', border = 'T', fill=True)
+            # pdf.set_fill_color(k_sl[0], k_sl[1], k_sl[2])
+            # pdf.cell(50,8, f'Insider Sellers ${inside_Tot_sellers}', align='C', border = 'T', fill=True)
+            
+            # pdf.set_fill_color(160, 255, 0)
+            pdf.cell(50,8, f' Value Traded $MM {numby(valt[0])}', align='R')
+            
+            pdf.ln(8)
+            pdf.cell(150,8, f' {dirlist}', align='L')
+            # pdf.ln(8)
+            # pdf.cell(150,8, f'SELLS {sellerslist}', align='L')
 
-        pdf.ln(8)
-        pdf.write(url)
-        
+            pdf.ln(8)
+            pdf.write(url)
+        except:
+            print('broke', end='')
+            pass
 
     try:
         
@@ -563,62 +568,3 @@ def kolor(eb=0.1, by=2000, sl=-50, sbv=0.5, kio=23, so=300):
         print('kolor bust')
         k_eb, k_by, k_sl, k_bv, k_io, k_so = white, white, white, white, white, white
     return k_eb, k_by, k_sl, k_bv, k_io, k_so
-
-def stock_buyers(stock, starting_flag, ending_flag):
-    # try:
-    url ='https://www.marketbeat.com/stocks/ASX/'+str(stock)+'/insider-trades/'
-    page = requests.get(url)
-    content = page.content
-    soup = BeautifulSoup(content, 'html.parser')
-    tb = soup.find_all('tr')
-    time.sleep(randint(1,3))
-
-    # tb is all the rows in the insider buyers table. the first two are total buy / sell. then the last n amount are individaul purchases and date of purchase
-    # try:
-    #     inside_Tot_buyers = int(tb[0].text.split('$')[-1].split('.')[0].replace(',',''))
-    #     inside_Tot_sellers = int(tb[1].text.split('$')[-1].split('.')[0].replace(',',''))
-    # except:
-    inside_Tot_buyers = -999
-    inside_Tot_sellers = -999
-    
-    # lenb = len(tb)-3
-    buyerslist =[]
-    sellerslist=[]
-    for i in range(-len(tb),0):
-        pdate = tb[i].text[:9]
-        
-        if '$' in tb[i].text:
-            for t in tb[i].text:
-                if 'Buy' in t:
-                    print(t, ' Btype ', type(t))
-                    stringdate, stringname, stringnos, stringprice, stringvalue = stringextract(t, starting_flag, ending_flag)
-                    buyerslist += [stringname+' '+stringdate.strftime('%b')+' $'+numby(stringvalue)+' @$'+ stringprice]
-                    
-                if 'Sell' in t:
-                    print(t, ' Stype ', type(t))
-                    stringdate, stringname, stringnos, stringprice, stringvalue = stringextract(t, starting_flag, ending_flag)
-                    sellerslist += [stringname+' '+stringdate.strftime('%b')+' -$'+numby(stringvalue)+' @$'+ stringprice]
-
-    return inside_Tot_buyers, inside_Tot_sellers, buyerslist, sellerslist, url
-
-def stringextract(string, start, end):
-    stringregex = re.match(r''' ((\d+)/(\d+)/(\d+))
-    ([A-z]+)\s([A-z]+)I
-    \D+(\d+,\d+)A
-    \$(\d+.\d+)A
-    \$(\d.*)
-    ''', string, re.VERBOSE)
-    stringdate = dt.datetime.strptime(stringregex.group(1), '%m/%d/%Y')
-    stringname = stringregex.group(6)
-    stringnos = int(stringregex.group(7).replace(',',''))
-    stringprice = float(stringregex.group(8))
-    stringvalue = int(float(stringregex.group(9).replace(',','')))
-
-    timeflag = pd.Interval(pd.Timestamp(start),pd.Timestamp(str(pd.to_datetime(end))), closed='left')
-    print('starting flag ', start, ' ending flag ', end)
-    if stringdate in timeflag:
-
-        return stringdate, stringname, stringnos, stringprice, stringvalue
-    else:
-        
-        pass
